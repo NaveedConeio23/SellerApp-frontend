@@ -39,7 +39,6 @@ export default function Login() {
         throw new Error("Missing access or refresh token in response.");
       }
 
-      // ✅ Use consistent key names
       localStorage.setItem("access_token", accessToken);
       localStorage.setItem("refresh_token", refreshToken);
 
@@ -77,16 +76,14 @@ export default function Login() {
 
       if (status === "approved") {
         toast.success("Welcome back! Redirecting to dashboard...");
-        // ✅ Small delay so toast can display before redirect
         setTimeout(() => router.push("/dashboard"), 1200);
       } else if (status === "pending") {
         toast("Your documents are under review.", { icon: "🕒" });
         setTimeout(() => router.push("/status"), 1200);
       } else if (status === "rejected") {
-        toast("Please re-upload your documents.", { icon: "⚠️" });
         if (seller.admin_comment)
           localStorage.setItem("admin_comment", seller.admin_comment);
-        setTimeout(() => router.push("/upload"), 1200);
+        setTimeout(() => router.push("/upload"), 300);
       } else {
         toast.success("Please upload your documents.");
         setTimeout(() => router.push("/upload"), 1200);

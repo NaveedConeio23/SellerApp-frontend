@@ -1,13 +1,40 @@
 "use client";
 
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import Link from "next/link";
-import { CheckCircle2, FileText, Settings, Upload } from "lucide-react";
+import { CheckCircle2, FileText, Settings, Upload, Loader2 } from "lucide-react";
 
 export default function Dashboard() {
+  const router = useRouter();
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // ✅ Prefetch the profile page for instant navigation
+  useEffect(() => {
+    router.prefetch("/profile");
+  }, [router]);
+
+  const handleProfileClick = async () => {
+    setIsNavigating(true);
+    // hold current screen for smooth transition
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    router.push("/profile");
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f4f9f9] to-[#dff3f3]">
+    <div className="relative min-h-screen bg-gradient-to-br from-[#f4f9f9] to-[#dff3f3] overflow-hidden">
       <Header />
+
+      {/* 🌀 Smooth transition overlay */}
+      {isNavigating && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm">
+          <div className="flex items-center gap-3 text-[#26696D] font-semibold text-lg">
+            <Loader2 className="w-6 h-6 animate-spin" />
+            Redirecting to Profile...
+          </div>
+        </div>
+      )}
 
       <main className="max-w-6xl mx-auto px-6 py-10">
         {/* Welcome Section */}
@@ -42,7 +69,9 @@ export default function Dashboard() {
             <Settings className="w-10 h-10 text-yellow-600" />
             <div>
               <h3 className="text-lg font-semibold text-[#26696D]">Next Steps</h3>
-              <p className="text-gray-700">Update details or upload new documents.</p>
+              <p className="text-gray-700">
+                Update details or upload new documents.
+              </p>
             </div>
           </div>
         </div>
@@ -57,13 +86,27 @@ export default function Dashboard() {
             Upload New Documents
           </Link>
 
-          <Link
-            href="/profile"
-            className="flex items-center gap-2 px-8 py-3 bg-white text-[#26696D] border-2 border-[#26696D] font-bold rounded-xl shadow-md hover:bg-[#26696D] hover:text-white transition-all duration-200"
+          <button
+            onClick={handleProfileClick}
+            disabled={isNavigating}
+            className={`flex items-center gap-2 px-8 py-3 bg-white text-[#26696D] border-2 border-[#26696D] font-bold rounded-xl shadow-md transition-all duration-200 ${
+              isNavigating
+                ? "opacity-70 cursor-not-allowed"
+                : "hover:bg-[#26696D] hover:text-white"
+            }`}
           >
-            <Settings className="w-5 h-5" />
-            Manage Profile
-          </Link>
+            {isNavigating ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Redirecting...
+              </>
+            ) : (
+              <>
+                <Settings className="w-5 h-5" />
+                Manage Profile
+              </>
+            )}
+          </button>
         </div>
       </main>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import toast, { Toaster } from "react-hot-toast";
 import {
   Building2,
@@ -11,6 +11,7 @@ import {
   MapPin,
   Save,
   User,
+  Loader2,
 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -20,7 +21,6 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  // ✅ Check token and fetch profile
   useEffect(() => {
     const token = localStorage.getItem("access_token");
 
@@ -33,12 +33,9 @@ export default function ProfilePage() {
 
     const fetchProfile = async () => {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/user/me/`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/me/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         if (res.status === 401) {
           setIsAuthenticated(false);
@@ -46,7 +43,6 @@ export default function ProfilePage() {
         }
 
         if (!res.ok) throw new Error("Failed to fetch profile");
-
         const data = await res.json();
         setProfile(data.profile || data);
       } catch (error) {
@@ -60,19 +56,16 @@ export default function ProfilePage() {
     fetchProfile();
   }, []);
 
-  // ✅ Redirect unauthenticated users
   useEffect(() => {
     if (isAuthenticated === false) {
       router.replace("/login");
     }
   }, [isAuthenticated, router]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
   };
-  
+
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -92,7 +85,7 @@ export default function ProfilePage() {
 
       if (!res.ok) throw new Error("Failed to update profile");
       toast.success("Profile updated successfully!");
-      setTimeout(() => router.push("/dashboard"), 1200);
+      setTimeout(() => router.push("/dashboard"), 1000);
     } catch (error) {
       console.error(error);
       toast.error("Error updating profile");
@@ -101,18 +94,14 @@ export default function ProfilePage() {
     }
   };
 
-  if (isAuthenticated === null) {
+  // ✅ Smooth in-app loader overlay (instead of white page)
+  if (loading || isAuthenticated === null) {
     return (
-      <div className="flex items-center justify-center h-screen text-gray-500">
-        Checking authentication...
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen text-gray-500">
-        Loading profile...
+      <div className="flex items-center justify-center h-screen bg-[#f4f9f9]">
+        <div className="flex flex-col items-center text-[#26696D]">
+          <Loader2 className="w-8 h-8 animate-spin mb-3" />
+          <p className="font-medium">Loading your profile...</p>
+        </div>
       </div>
     );
   }
@@ -120,9 +109,7 @@ export default function ProfilePage() {
   return (
     <div
       className="min-h-screen bg-cover bg-center bg-no-repeat flex items-center justify-center p-6 relative"
-      style={{
-        backgroundImage: "url('/icons/screen.png')",
-      }}
+      style={{ backgroundImage: "url('/icons/screen.png')" }}
     >
       <Toaster position="top-center" />
       <div className="absolute inset-0 bg-[#cde3e1]/70 backdrop-blur-[2px]" />
@@ -130,11 +117,8 @@ export default function ProfilePage() {
       {/* Profile Card */}
       <div
         className="relative z-10 w-full max-w-xl bg-white/95 rounded-2xl shadow-2xl p-8 backdrop-blur-md bg-cover bg-center"
-        style={{
-          backgroundImage: "url('/icons/card-bg.png')",
-        }}
+        style={{ backgroundImage: "url('/icons/card-bg.png')" }}
       >
-    
         <h1 className="text-3xl font-bold text-[#26696D] text-center mb-6 border-b pb-3 flex items-center justify-center gap-2">
           <User className="w-7 h-7 text-[#26696D]" />
           My Profile
@@ -148,76 +132,44 @@ export default function ProfilePage() {
           className="space-y-6"
         >
           {/* Factory Name */}
-          <div>
-            <label className="block text-lg font-semibold text-gray-700 mb-1">
-              Factory Name
-            </label>
-            <div className="flex items-center border rounded-xl px-3 py-3 bg-gray-50 shadow-sm">
-              <Building2 className="text-[#26696D] mr-3 w-5 h-5" />
-              <input
-                type="text"
-                name="factory_name"
-                value={profile?.factory_name || ""}
-                onChange={handleChange}
-                className="w-full  bg-transparent outline-none text-gray-800 placeholder-gray-400"
-                placeholder="Enter your factory name"
-              />
-            </div>
-          </div>
+          <InputField
+            label="Factory Name"
+            name="factory_name"
+            value={profile?.factory_name}
+            icon={<Building2 className="text-[#26696D] mr-3 w-5 h-5" />}
+            placeholder="Enter your factory name"
+            onChange={handleChange}
+          />
 
           {/* GSTIN */}
-          <div>
-            <label className="block text-lg font-semibold text-gray-700 mb-1">
-              GSTIN
-            </label>
-            <div className="flex items-center border rounded-xl px-3 py-3 bg-gray-50 shadow-sm">
-              <FileText className="text-[#26696D] mr-3 w-5 h-5" />
-              <input
-                type="text"
-                name="gstin"
-                value={profile?.gstin || ""}
-                onChange={handleChange}
-                className="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400"
-                placeholder="Enter your GSTIN"
-              />
-            </div>
-          </div>
+          <InputField
+            label="GSTIN"
+            name="gstin"
+            value={profile?.gstin}
+            icon={<FileText className="text-[#26696D] mr-3 w-5 h-5" />}
+            placeholder="Enter your GSTIN"
+            onChange={handleChange}
+          />
 
-          {/* IEC Code */}
-          <div>
-            <label className="block text-lg font-semibold text-gray-700 mb-1">
-              IEC Code
-            </label>
-            <div className="flex items-center border rounded-xl px-3 py-3 bg-gray-50 shadow-sm">
-              <Hash className="text-[#26696D] mr-3 w-5 h-5" />
-              <input
-                type="text"
-                name="iec"
-                value={profile?.iec || ""}
-                onChange={handleChange}
-                className="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400"
-                placeholder="Enter your IEC Code"
-              />
-            </div>
-          </div>
+          {/* IEC */}
+          <InputField
+            label="IEC Code"
+            name="iec"
+            value={profile?.iec}
+            icon={<Hash className="text-[#26696D] mr-3 w-5 h-5" />}
+            placeholder="Enter your IEC code"
+            onChange={handleChange}
+          />
 
           {/* Mobile */}
-          <div>
-            <label className="block text-lg font-semibold text-gray-700 mb-1">
-              Mobile Number
-            </label>
-            <div className="flex items-center border rounded-xl px-3 py-3 bg-gray-50 shadow-sm">
-              <Phone className="text-[#26696D] mr-3 w-5 h-5" />
-              <input
-                type="text"
-                name="mobile"
-                value={profile?.mobile || ""}
-                onChange={handleChange}
-                className="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400"
-                placeholder="Enter your mobile number"
-              />
-            </div>
-          </div>
+          <InputField
+            label="Mobile Number"
+            name="mobile"
+            value={profile?.mobile}
+            icon={<Phone className="text-[#26696D] mr-3 w-5 h-5" />}
+            placeholder="Enter your mobile number"
+            onChange={handleChange}
+          />
 
           {/* Address */}
           <div>
@@ -237,7 +189,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Save Button */}
           <button
             type="submit"
             disabled={saving}
@@ -251,6 +202,35 @@ export default function ProfilePage() {
             {saving ? "Saving..." : "Save Changes"}
           </button>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// ✅ Reusable input field component
+function InputField({
+  label,
+  name,
+  value,
+  icon,
+  placeholder,
+  onChange,
+}: any) {
+  return (
+    <div>
+      <label className="block text-lg font-semibold text-gray-700 mb-1">
+        {label}
+      </label>
+      <div className="flex items-center border rounded-xl px-3 py-3 bg-gray-50 shadow-sm">
+        {icon}
+        <input
+          type="text"
+          name={name}
+          value={value || ""}
+          onChange={onChange}
+          className="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400"
+          placeholder={placeholder}
+        />
       </div>
     </div>
   );
