@@ -13,7 +13,10 @@ interface UploadedFile {
 
 // 🔄 Refresh Access Token Helper
 async function refreshAccessToken(router: any) {
-  const refreshToken = localStorage.getItem("refresh_token");
+  const refreshToken = typeof window !== "undefined"
+    ? localStorage.getItem("refresh_token")
+    : null;
+
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   if (!refreshToken) {
@@ -43,6 +46,7 @@ async function refreshAccessToken(router: any) {
       localStorage.setItem("access_token", newAccessToken);
       return newAccessToken;
     }
+
     return null;
   } catch {
     router.replace("/login");
@@ -67,12 +71,12 @@ export default function UploadDocs() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // ✅ Only render on client
   useEffect(() => setIsClient(true), []);
 
   // 🧠 Token retrieval
   useEffect(() => {
     if (!isClient) return;
+
     const urlToken = searchParams.get("accessToken");
     const storedToken = localStorage.getItem("access_token");
 
@@ -87,9 +91,10 @@ export default function UploadDocs() {
     }
   }, [isClient, router, searchParams]);
 
-  // 💬 Load rejection reason (once)
+  // 💬 Load rejection reason
   useEffect(() => {
     if (!isClient) return;
+
     const comment = localStorage.getItem("admin_comment");
     if (comment) {
       setAdminComment(comment);
@@ -134,11 +139,18 @@ export default function UploadDocs() {
       return null;
     }
 
-    return fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/seller/upload-doc/`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${uploadToken}` },
-      body: formData,
-    });
+    try {
+      return await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/seller/upload-doc/`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${uploadToken}` },
+          body: formData,
+        }
+      );
+    } catch {
+      return null;
+    }
   };
 
   // 🚀 Upload Handler
@@ -153,27 +165,29 @@ export default function UploadDocs() {
 
     try {
       let res = await executeUpload(currentToken);
-      if (!res) return;
 
-      if (res.status === 401) {
+      if (!res || res.status === 401) {
         const newToken = await refreshAccessToken(router);
         if (!newToken) return;
+
         currentToken = newToken;
         setToken(newToken);
+
         res = await executeUpload(currentToken);
       }
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || "Upload failed.");
+      // ❗ THIS WAS THE ERROR LINE → FIXED
+      if (!res || !res.ok) {
+        const data = await res?.json().catch(() => ({}));
+        throw new Error(data?.detail || "Upload failed.");
       }
 
-      // ✅ Update instantly to pending
+      // 🚀 Update instantly to pending
       await updateStatusToPending(currentToken);
+
       localStorage.removeItem("admin_comment");
       setAdminComment(null);
 
-      // ✅ Show toast and instantly hide UI for smooth redirect
       setRedirecting(true);
       toast.success("Documents uploaded successfully! Awaiting Approval", {
         style: {
@@ -185,7 +199,6 @@ export default function UploadDocs() {
         iconTheme: { primary: "#155E63", secondary: "#fff" },
       });
 
-      // 🚀 Redirect instantly (no flicker)
       router.replace("/status?refresh=true");
     } catch (err: any) {
       toast.error(err.message || "Upload failed");

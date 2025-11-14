@@ -15,7 +15,8 @@
     "incremental": true,
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "types": ["minimatch"]  
   },
   "include": [
     "next-env.d.ts",
