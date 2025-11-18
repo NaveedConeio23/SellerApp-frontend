@@ -56,11 +56,11 @@ async function refreshAccessToken(router: any) {
 
 export default function UploadDocs() {
   const [files, setFiles] = useState<UploadedFile[]>([
-    { key: "doc1", label: "Business License", file: null },
-    { key: "doc2", label: "GST Certificate", file: null },
-    { key: "doc3", label: "IEC Document", file: null },
-    { key: "doc4", label: "Cancelled Cheque", file: null },
-    { key: "doc5", label: "Factory Photo", file: null },
+    { key: "Business License", label: "Business License", file: null },
+    { key: "GST Certificate", label: "GST Certificate", file: null },
+    { key: "IEC Document", label: "IEC Document", file: null },
+    { key: "Cancelled Cheque", label: "Cancelled Cheque", file: null },
+    { key: "Factory Photo", label: "Factory Photo", file: null },
   ]);
 
   const [loading, setLoading] = useState(false);
